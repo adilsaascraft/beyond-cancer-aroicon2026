@@ -1,6 +1,8 @@
+
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Image from "next/image";
 import {
   Loader2,
   RefreshCw,
@@ -11,6 +13,16 @@ import {
   CalendarClock,
   Lock,
   AlertCircle,
+  Eye,
+  EyeOff,
+  ShieldCheck,
+  ArrowRight,
+  UserRound,
+  Sparkles,
+  CalendarDays,
+  Search,
+  CheckCircle2,
+  KeyRound,
 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,8 +43,11 @@ const KEY_STORAGE = "aroicon-admin-key";
 
 function formatDate(value?: string) {
   if (!value) return "—";
+
   const d = new Date(value);
+
   if (isNaN(d.getTime())) return "—";
+
   return d.toLocaleString("en-IN", {
     day: "2-digit",
     month: "short",
@@ -45,10 +60,16 @@ function formatDate(value?: string) {
 export default function ParticipantsPage() {
   const [adminKey, setAdminKey] = useState("");
   const [keyInput, setKeyInput] = useState("");
+  const [showKey, setShowKey] = useState(false);
+
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [needsKey, setNeedsKey] = useState(true);
+
+  // =========================================================
+  // FETCH PARTICIPANTS
+  // =========================================================
 
   const fetchParticipants = useCallback(async (key: string) => {
     setLoading(true);
@@ -57,233 +78,626 @@ export default function ParticipantsPage() {
     try {
       const res = await fetch("/api/registers", {
         method: "GET",
-        headers: { "x-admin-key": key },
+        headers: {
+          "x-admin-key": key,
+        },
         cache: "no-store",
       });
 
       let json: any = null;
+
       try {
         json = await res.json();
       } catch {
-        // non-JSON response
+        // Non-JSON response
       }
 
       if (res.status === 401) {
         try {
           sessionStorage.removeItem(KEY_STORAGE);
-        } catch {}
+        } catch {
+          // Storage unavailable
+        }
+
         setNeedsKey(true);
         setAdminKey("");
+        setParticipants([]);
         setError("Invalid admin key. Please try again.");
         return;
       }
 
       if (!res.ok || !json?.success) {
-        throw new Error(json?.message || "Failed to load participants");
+        throw new Error(
+          json?.message || "Failed to load participants"
+        );
       }
 
-      setParticipants(Array.isArray(json.data) ? json.data : []);
+      setParticipants(
+        Array.isArray(json.data) ? json.data : []
+      );
+
       setNeedsKey(false);
       setAdminKey(key);
+
       try {
         sessionStorage.setItem(KEY_STORAGE, key);
-      } catch {}
+      } catch {
+        // Storage unavailable
+      }
     } catch (err: any) {
-      setError(err.message || "Something went wrong. Please try again.");
+      setError(
+        err.message || "Something went wrong. Please try again."
+      );
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Reuse the key entered earlier in this browser session
+  // =========================================================
+  // RESTORE ADMIN KEY
+  // =========================================================
+
   useEffect(() => {
     let saved = "";
+
     try {
       saved = sessionStorage.getItem(KEY_STORAGE) || "";
-    } catch {}
-    if (saved) fetchParticipants(saved);
-    else setNeedsKey(true);
+    } catch {
+      // Storage unavailable
+    }
+
+    if (saved) {
+      fetchParticipants(saved);
+    } else {
+      setNeedsKey(true);
+    }
   }, [fetchParticipants]);
+
+  // =========================================================
+  // UNLOCK DASHBOARD
+  // =========================================================
 
   const handleUnlock = (e: React.FormEvent) => {
     e.preventDefault();
-    if (keyInput.trim()) fetchParticipants(keyInput.trim());
+
+    const key = keyInput.trim();
+
+    if (key) {
+      fetchParticipants(key);
+    }
   };
 
+  // =========================================================
+  // PAGE
+  // =========================================================
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-100 via-white to-indigo-100 px-3 py-8 sm:px-6 sm:py-12">
-      <div className="mx-auto w-full max-w-6xl">
-        {/* ================= HEADING ================= */}
-        <header className="mb-8 text-center">
-          <h1 className="text-2xl font-bold text-sky-800 sm:text-3xl md:text-4xl">
-            46th Annual Conference AROICON 2026
-          </h1>
-          <p className="mt-2 text-sm font-semibold text-sky-700 sm:text-base">
-            Beyond Cancer - Stories Of Courage
-          </p>
-          <div className="mt-4 inline-flex rounded-full bg-sky-50 px-5 py-2">
-            <span className="text-sm font-bold uppercase tracking-wide text-sky-800">
-              Registered Participants
+    <div className="flex min-h-screen flex-col overflow-x-hidden bg-gradient-to-br from-sky-50 via-white to-indigo-100">
+
+      {/* =====================================================
+          FULL WIDTH CONFERENCE BANNER
+      ===================================================== */}
+
+      <header className="relative w-full overflow-hidden bg-slate-950">
+        <Image
+          src="/banner.webp"
+          alt="46th Annual Conference AROICON 2026 - Beyond Cancer: Stories of Courage"
+          width={1920}
+          height={400}
+          priority
+          sizes="100vw"
+          className="block h-auto max-h-[220px] w-full object-cover object-center sm:max-h-none"
+        />
+      </header>
+
+      {/* =====================================================
+          MAIN CONTENT
+      ===================================================== */}
+
+      <main className="mx-auto w-full max-w-7xl flex-1 px-3 py-6 sm:px-6 sm:py-9 lg:px-8">
+
+        {/* =================================================
+            PAGE HEADING
+        ================================================= */}
+
+        <div className="mb-7 text-center">
+
+          <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-sky-100 bg-white/80 px-4 py-2 shadow-sm backdrop-blur">
+            <Sparkles className="h-4 w-4 text-purple-600" />
+            <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-sky-800 sm:text-xs">
+              Conference Administration
             </span>
           </div>
-        </header>
 
-        {/* ================= ADMIN KEY GATE ================= */}
+          <h1 className="mt-4 text-2xl font-extrabold tracking-tight text-sky-950 sm:text-3xl md:text-4xl">
+            46th Annual Conference AROICON 2026
+          </h1>
+
+          <p className="mt-2 text-sm font-semibold text-purple-700 sm:text-base">
+            Beyond Cancer - Stories Of Courage
+          </p>
+
+          <div className="mx-auto mt-4 h-1 w-16 rounded-full bg-gradient-to-r from-fuchsia-500 via-purple-500 to-sky-500" />
+
+          <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-sky-100 bg-white/80 px-4 py-2 text-xs font-bold text-sky-800 shadow-sm">
+            <Users className="h-4 w-4" />
+            Registered Participants Dashboard
+          </div>
+
+        </div>
+
+        {/* =================================================
+            ADMIN ACCESS GATE
+        ================================================= */}
+
         {needsKey && !loading && (
-          <Card className="mx-auto max-w-md rounded-2xl border border-sky-100 bg-white/95 shadow-xl">
-            <CardContent className="p-6">
-              <form onSubmit={handleUnlock} className="space-y-4">
-                <div className="flex items-center gap-2 text-sky-800">
-                  <Lock className="h-5 w-5" />
-                  <h2 className="font-bold">Admin access required</h2>
+
+          <div className="mx-auto max-w-md">
+
+            <Card className="relative overflow-hidden rounded-3xl border border-white bg-white/95 shadow-xl shadow-sky-900/10">
+
+              {/* Gradient top line */}
+              <div className="h-1.5 w-full bg-gradient-to-r from-fuchsia-500 via-purple-500 to-sky-500" />
+
+              <CardContent className="p-5 sm:p-7">
+
+                {/* Lock icon */}
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-100 to-indigo-100 shadow-inner">
+                  <ShieldCheck className="h-9 w-9 text-sky-700" />
                 </div>
 
-                <Input
-                  type="password"
-                  value={keyInput}
-                  onChange={(e) => setKeyInput(e.target.value)}
-                  placeholder="Enter admin key"
-                  className="h-12 border-sky-200 bg-white text-sky-800"
-                />
+                <div className="mt-5 text-center">
+                  <h2 className="text-xl font-extrabold text-sky-950 sm:text-2xl">
+                    Admin Access Required
+                  </h2>
 
-                {error && (
-                  <p className="text-sm font-medium text-red-600">{error}</p>
-                )}
+                  <p className="mt-2 text-sm leading-6 text-slate-500">
+                    Enter your secure admin key to access
+                    the registered participants dashboard.
+                  </p>
+                </div>
 
-                <Button
-                  type="submit"
-                  disabled={!keyInput.trim()}
-                  className="h-12 w-full rounded-xl bg-sky-700 font-bold text-white hover:bg-sky-800"
+                <form
+                  onSubmit={handleUnlock}
+                  className="mt-6 space-y-4"
                 >
-                  View Participants
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+
+                  {/* PASSWORD INPUT */}
+                  <div className="space-y-2">
+
+                    <label className="text-sm font-semibold text-slate-700">
+                      Admin Security Key
+                    </label>
+
+                    <div className="group flex h-12 items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 transition-all focus-within:border-sky-500 focus-within:ring-2 focus-within:ring-sky-100">
+
+                      <KeyRound className="h-5 w-5 shrink-0 text-slate-400 group-focus-within:text-sky-600" />
+
+                      <Input
+                        type={showKey ? "text" : "password"}
+                        value={keyInput}
+                        onChange={(e) => setKeyInput(e.target.value)}
+                        placeholder="Enter your admin key"
+                        autoComplete="current-password"
+                        className="h-11 border-0 bg-transparent px-0 text-sm text-slate-800 shadow-none placeholder:text-slate-400 focus-visible:ring-0"
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() => setShowKey((prev) => !prev)}
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-sky-50 hover:text-sky-700"
+                        aria-label={
+                          showKey ? "Hide admin key" : "Show admin key"
+                        }
+                      >
+                        {showKey ? (
+                          <EyeOff className="h-5 w-5" />
+                        ) : (
+                          <Eye className="h-5 w-5" />
+                        )}
+                      </button>
+
+                    </div>
+
+                  </div>
+
+                  {/* ERROR MESSAGE */}
+                  {error && (
+                    <div className="flex items-start gap-2 rounded-xl border border-red-100 bg-red-50 p-3">
+                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+                      <p className="text-xs font-medium leading-5 text-red-700">
+                        {error}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* SUBMIT */}
+                  <Button
+                    type="submit"
+                    disabled={!keyInput.trim()}
+                    className="h-12 w-full rounded-xl border-0 bg-gradient-to-r from-sky-700 via-indigo-700 to-purple-700 font-bold text-white shadow-lg shadow-indigo-900/15 transition-all hover:-translate-y-0.5 hover:opacity-95 hover:shadow-xl disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Access Dashboard
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+
+                </form>
+
+                {/* SECURITY NOTE */}
+                <div className="mt-5 flex items-center justify-center gap-2 border-t border-slate-100 pt-4">
+                  <Lock className="h-3.5 w-3.5 text-emerald-600" />
+                  <p className="text-[11px] font-medium text-slate-400">
+                    Secure access for authorized administrators
+                  </p>
+                </div>
+
+              </CardContent>
+            </Card>
+
+          </div>
         )}
 
-        {/* ================= LOADING ================= */}
+        {/* =================================================
+            LOADING STATE
+        ================================================= */}
+
         {loading && (
-          <div className="py-12">
-            <div className="flex flex-col items-center justify-center text-sky-700">
-              <Loader2 className="h-10 w-10 animate-spin" />
-              <p className="mt-3 text-sm font-semibold">
-                Loading participants...
+
+          <div className="space-y-6">
+
+            <div className="flex flex-col items-center justify-center rounded-3xl border border-white bg-white/80 px-5 py-10 shadow-sm">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-sky-50">
+                <Loader2 className="h-9 w-9 animate-spin text-sky-700" />
+              </div>
+
+              <p className="mt-4 text-base font-bold text-sky-900">
+                Loading Participants
+              </p>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Please wait while we retrieve the registrations.
               </p>
             </div>
 
-            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {/* SKELETON CARDS */}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div
                   key={i}
-                  className="h-44 animate-pulse rounded-2xl border border-sky-100 bg-white/70"
-                />
+                  className="animate-pulse rounded-2xl border border-sky-100 bg-white p-5 shadow-sm"
+                >
+                  <div className="h-6 w-32 rounded-full bg-slate-100" />
+                  <div className="mt-5 h-5 w-2/3 rounded bg-slate-100" />
+                  <div className="mt-5 space-y-3">
+                    <div className="h-4 w-full rounded bg-slate-100" />
+                    <div className="h-4 w-4/5 rounded bg-slate-100" />
+                    <div className="h-4 w-3/4 rounded bg-slate-100" />
+                  </div>
+                </div>
               ))}
             </div>
+
           </div>
         )}
 
-        {/* ================= ERROR (after key accepted) ================= */}
+        {/* =================================================
+            ERROR STATE
+        ================================================= */}
+
         {!loading && !needsKey && error && (
-          <div className="mx-auto max-w-md rounded-2xl border border-red-200 bg-red-50 p-6 text-center">
-            <AlertCircle className="mx-auto h-10 w-10 text-red-500" />
-            <p className="mt-3 text-sm font-semibold text-red-700">{error}</p>
-            <Button
-              onClick={() => fetchParticipants(adminKey)}
-              className="mt-4 bg-red-600 text-white hover:bg-red-700"
-            >
-              Try Again
-            </Button>
+
+          <div className="mx-auto max-w-md">
+
+            <Card className="overflow-hidden rounded-3xl border border-red-100 bg-white shadow-lg">
+              <CardContent className="p-7 text-center">
+
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-red-50">
+                  <AlertCircle className="h-9 w-9 text-red-500" />
+                </div>
+
+                <h2 className="mt-4 text-xl font-extrabold text-slate-900">
+                  Unable to Load Participants
+                </h2>
+
+                <p className="mt-2 text-sm leading-6 text-red-600">
+                  {error}
+                </p>
+
+                <Button
+                  onClick={() => fetchParticipants(adminKey)}
+                  className="mt-6 h-11 w-full rounded-xl bg-red-600 font-bold text-white hover:bg-red-700"
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Try Again
+                </Button>
+
+              </CardContent>
+            </Card>
+
           </div>
         )}
 
-        {/* ================= LIST ================= */}
+        {/* =================================================
+            PARTICIPANTS DASHBOARD
+        ================================================= */}
+
         {!loading && !needsKey && !error && (
-          <>
-            {/* COUNT BAR */}
-            <div className="mb-6 flex flex-col items-center justify-between gap-3 rounded-2xl border border-sky-100 bg-white/95 p-4 shadow-md sm:flex-row sm:p-5">
+
+          <div className="space-y-6">
+
+            {/* DASHBOARD SUMMARY */}
+            <div className="grid gap-4 sm:grid-cols-2">
+
+              {/* TOTAL PARTICIPANTS */}
+              <Card className="relative overflow-hidden rounded-2xl border border-white bg-white shadow-lg shadow-sky-900/5">
+                <CardContent className="relative flex items-center justify-between p-5 sm:p-6">
+
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                      Total Participants
+                    </p>
+
+                    <p className="mt-2 text-4xl font-extrabold tracking-tight text-sky-950">
+                      {participants.length}
+                    </p>
+
+                    <p className="mt-1 text-xs font-medium text-slate-400">
+                      Successfully registered
+                    </p>
+                  </div>
+
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-100 to-indigo-100">
+                    <Users className="h-7 w-7 text-sky-700" />
+                  </div>
+
+                  <div className="pointer-events-none absolute -bottom-10 -right-5 h-28 w-28 rounded-full bg-sky-100/50 blur-2xl" />
+
+                </CardContent>
+              </Card>
+
+              {/* REGISTRATION STATUS */}
+              <Card className="relative overflow-hidden rounded-2xl border border-white bg-white shadow-lg shadow-sky-900/5">
+                <CardContent className="relative flex items-center justify-between p-5 sm:p-6">
+
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                      Registration Status
+                    </p>
+
+                    <div className="mt-3 flex items-center gap-2">
+                      <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]" />
+
+                      <p className="text-xl font-extrabold text-emerald-700">
+                        Connected
+                      </p>
+                    </div>
+
+                    <p className="mt-1 text-xs font-medium text-slate-400">
+                      Participant data loaded successfully
+                    </p>
+                  </div>
+
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50">
+                    <CheckCircle2 className="h-7 w-7 text-emerald-600" />
+                  </div>
+
+                </CardContent>
+              </Card>
+
+            </div>
+
+            {/* PARTICIPANTS HEADER */}
+            <div className="flex flex-col gap-4 rounded-2xl border border-white bg-white/90 p-4 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:p-5">
+
               <div className="flex items-center gap-3">
-                <div className="rounded-full bg-sky-100 p-3">
-                  <Users className="h-6 w-6 text-sky-700" />
+
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-100">
+                  <Users className="h-5 w-5 text-sky-700" />
                 </div>
+
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    Total Participants
-                  </p>
-                  <p className="text-3xl font-extrabold text-sky-800">
-                    {participants.length}
+                  <h2 className="text-lg font-extrabold text-sky-950">
+                    Registered Participants
+                  </h2>
+
+                  <p className="text-xs text-slate-500">
+                    View all conference registrations
                   </p>
                 </div>
+
               </div>
 
               <Button
                 onClick={() => fetchParticipants(adminKey)}
+                disabled={loading}
                 variant="outline"
-                className="border-sky-200 text-sky-800 hover:bg-sky-50"
+                className="h-10 rounded-xl border-sky-200 bg-white px-4 font-semibold text-sky-800 transition-all hover:border-sky-300 hover:bg-sky-50"
               >
                 <RefreshCw className="mr-2 h-4 w-4" />
-                Refresh
+                Refresh Data
               </Button>
+
             </div>
 
+            {/* EMPTY STATE */}
             {participants.length === 0 ? (
-              <div className="rounded-2xl border border-sky-100 bg-white/95 p-12 text-center shadow-md">
-                <Users className="mx-auto h-12 w-12 text-sky-300" />
-                <p className="mt-3 font-semibold text-sky-800">
-                  No participants registered yet
-                </p>
-                <p className="mt-1 text-sm text-gray-500">
-                  New registrations will appear here.
-                </p>
-              </div>
+
+              <Card className="overflow-hidden rounded-3xl border border-white bg-white shadow-sm">
+                <CardContent className="flex flex-col items-center px-5 py-14 text-center">
+
+                  <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-sky-100 to-indigo-100">
+                    <Users className="h-10 w-10 text-sky-600" />
+                  </div>
+
+                  <h3 className="mt-5 text-lg font-extrabold text-sky-950">
+                    No Participants Yet
+                  </h3>
+
+                  <p className="mt-2 max-w-sm text-sm leading-6 text-slate-500">
+                    There are currently no registered participants.
+                    New registrations will automatically appear here.
+                  </p>
+
+                  <Button
+                    onClick={() => fetchParticipants(adminKey)}
+                    variant="outline"
+                    className="mt-5 rounded-xl border-sky-200 text-sky-800 hover:bg-sky-50"
+                  >
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Check Again
+                  </Button>
+
+                </CardContent>
+              </Card>
+
             ) : (
+
+              /* PARTICIPANT CARDS */
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
                 {participants.map((p, index) => (
+
                   <Card
                     key={p._id}
-                    className="overflow-hidden rounded-2xl border border-sky-100 bg-white/95 shadow-md transition-shadow hover:shadow-xl"
+                    className="group relative overflow-hidden rounded-2xl border border-white bg-white shadow-md shadow-sky-900/5 transition-all duration-300 hover:-translate-y-1 hover:border-sky-200 hover:shadow-xl hover:shadow-sky-900/10"
                   >
+
+                    {/* Card top accent */}
+                    <div className="h-1 w-full bg-gradient-to-r from-fuchsia-500 via-purple-500 to-sky-500 opacity-70 transition-opacity group-hover:opacity-100" />
+
                     <CardContent className="p-5">
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-bold tracking-wide text-sky-800">
-                          {p.regNum}
+
+                      {/* REGISTRATION NUMBER */}
+                      <div className="flex items-center justify-between gap-2">
+
+                        <span className="inline-flex max-w-[75%] items-center gap-1.5 truncate rounded-lg border border-sky-100 bg-sky-50 px-3 py-1.5 text-xs font-extrabold tracking-wide text-sky-800">
+                          <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate">{p.regNum}</span>
                         </span>
-                        <span className="text-xs font-semibold text-gray-400">
+
+                        <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-500">
                           #{participants.length - index}
                         </span>
+
                       </div>
 
-                      <h3 className="mt-3 break-words text-lg font-bold text-sky-900">
-                        {p.name}
-                      </h3>
+                      {/* PARTICIPANT NAME */}
+                      <div className="mt-4 flex items-start gap-3">
 
-                      <div className="mt-3 space-y-2 text-sm text-gray-600">
-                        <p className="flex items-start gap-2">
-                          <Mail className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
-                          <span className="break-all">{p.email}</span>
-                        </p>
-                        <p className="flex items-start gap-2">
-                          <Phone className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
-                          <span>{p.mobile}</span>
-                        </p>
-                        <p className="flex items-start gap-2">
-                          <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
-                          <span className="break-words">{p.affiliation}</span>
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-100 to-indigo-100">
+                          <UserRound className="h-5 w-5 text-sky-700" />
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <h3 className="break-words text-base font-extrabold leading-6 text-sky-950">
+                            {p.name}
+                          </h3>
+
+                          <p className="mt-0.5 text-[11px] font-medium text-slate-400">
+                            Conference Participant
+                          </p>
+                        </div>
+
+                      </div>
+
+                      {/* PARTICIPANT INFORMATION */}
+                      <div className="mt-5 space-y-3">
+
+                        <div className="flex min-w-0 items-start gap-3">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sky-50">
+                            <Mail className="h-4 w-4 text-sky-600" />
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                              Email Address
+                            </p>
+
+                            <p className="mt-0.5 break-all text-sm font-medium text-slate-700">
+                              {p.email}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex min-w-0 items-start gap-3">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-50">
+                            <Phone className="h-4 w-4 text-indigo-600" />
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                              Mobile Number
+                            </p>
+
+                            <p className="mt-0.5 break-all text-sm font-medium text-slate-700">
+                              {p.mobile}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex min-w-0 items-start gap-3">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-50">
+                            <Building2 className="h-4 w-4 text-purple-600" />
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                              Affiliation / Organization
+                            </p>
+
+                            <p className="mt-0.5 break-words text-sm font-medium text-slate-700">
+                              {p.affiliation}
+                            </p>
+                          </div>
+                        </div>
+
+                      </div>
+
+                      {/* REGISTRATION DATE */}
+                      <div className="mt-5 flex items-center gap-2 border-t border-slate-100 pt-4">
+                        <CalendarClock className="h-4 w-4 shrink-0 text-sky-500" />
+
+                        <p className="text-xs text-slate-500">
+                          <span className="font-semibold text-slate-600">
+                            Registered:
+                          </span>{" "}
+                          {formatDate(p.createdAt)}
                         </p>
                       </div>
 
-                      <p className="mt-4 flex items-center gap-2 border-t border-gray-100 pt-3 text-xs text-gray-400">
-                        <CalendarClock className="h-3.5 w-3.5" />
-                        Registered {formatDate(p.createdAt)}
-                      </p>
                     </CardContent>
                   </Card>
+
                 ))}
+
               </div>
             )}
-          </>
+
+          </div>
         )}
-      </div>
+
+      </main>
+
+      {/* =====================================================
+          FOOTER
+      ===================================================== */}
+
+      <footer className="mt-auto border-t border-sky-100 bg-white/80 px-4 py-5 text-center backdrop-blur">
+
+        <p className="text-sm font-bold text-sky-900">
+          AROICON 2026
+        </p>
+
+        <p className="mt-1 text-xs text-slate-500">
+          46th Annual Conference - Beyond Cancer: Stories Of Courage
+        </p>
+
+        <p className="mt-2 text-[11px] font-medium text-slate-400">
+          Powered by SaaScraft Studio
+        </p>
+
+      </footer>
+
     </div>
   );
 }
