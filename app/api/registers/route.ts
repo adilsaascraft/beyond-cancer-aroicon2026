@@ -1,266 +1,107 @@
 import { NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import Register from '@/lib/models/Register'
-import sendEmail from '@/lib/utils/sendEmail'
+import Counter from '@/lib/models/Counter'
+import { EVEventRegistrationSchema } from '@/validations/registrationSchema'
 
+const REG_PREFIX = 'AROICON26'
+const REG_START = 1001
+
+function fail(message: string, status: number) {
+  return NextResponse.json({ success: false, message }, { status })
+}
+
+// Atomic, race-condition-free registration number
+async function nextRegNum(): Promise<string> {
+  // Make sure the counter starts at REG_START (only on first ever call)
+  await Counter.updateOne(
+    { _id: 'register' },
+    { $setOnInsert: { seq: REG_START - 1 } },
+    { upsert: true },
+  )
+  const counter = await Counter.findOneAndUpdate(
+    { _id: 'register' },
+    { $inc: { seq: 1 } },
+    { new: true },
+  )
+  return `${REG_PREFIX}-${counter.seq}`
+}
+
+// =========================================================
+// POST - CREATE REGISTRATION
+// =========================================================
 export async function POST(req: Request) {
   try {
     await connectDB()
 
-    const {
-      name,
-      designation,
-      institute,
-      mobileNo,
-      emailId,
-      medicalCouncilNo,
-      medicalCouncilState,
-    } = await req.json()
-
-    // =========================================================
-    // VALIDATION
-    // =========================================================
-
-    if (
-      !name ||
-      !designation ||
-      !institute ||
-      !mobileNo ||
-      !emailId ||
-      !medicalCouncilNo ||
-      !medicalCouncilState
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'All fields are required',
-        },
-        { status: 400 },
-      )
+    let body: unknown
+    try {
+      body = await req.json()
+    } catch {
+      return fail('Invalid request body', 400)
     }
 
-    // =========================================================
-    // CLEAN VALUES
-    // =========================================================
-
-    const cleanName = name.trim()
-    const cleanDesignation = designation.trim()
-    const cleanInstitute = institute.trim()
-    const cleanMobileNo = mobileNo.trim()
-    const cleanEmailId = emailId.trim().toLowerCase()
-    const cleanMedicalCouncilNo = medicalCouncilNo.trim()
-    const cleanMedicalCouncilState = medicalCouncilState.trim()
-
-    // =========================================================
-    // VALIDATE MOBILE NUMBER
-    // =========================================================
-
-    if (!/^\d{10}$/.test(cleanMobileNo)) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'Mobile No. must be 10 digits',
-        },
-        { status: 400 },
-      )
+    // Validate with the same zod schema the form uses
+    const parsed = EVEventRegistrationSchema.safeParse(body)
+    if (!parsed.success) {
+      return fail(parsed.error.issues[0]?.message || 'Invalid input', 400)
     }
 
-    // =========================================================
-    // VALIDATE EMAIL
-    // =========================================================
+    const name = parsed.data.name
+    const email = parsed.data.email.toLowerCase()
+    const mobile = parsed.data.mobile
+    const affiliation = parsed.data.affiliation
 
-    if (!/^\S+@\S+\.\S+$/.test(cleanEmailId)) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'Please enter a valid Email ID',
-        },
-        { status: 400 },
-      )
-    }
-
-    // =========================================================
-    // CHECK EXISTING REGISTRATION
-    // =========================================================
-
-    const exists = await Register.findOne({
-      $or: [{ mobileNo: cleanMobileNo }, { emailId: cleanEmailId }],
-    })
-
+    // Duplicate check
+    const exists = await Register.findOne({ $or: [{ mobile }, { email }] })
     if (exists) {
-      if (exists.mobileNo === cleanMobileNo) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: 'Mobile No. already registered',
-          },
-          { status: 409 },
-        )
-      }
-
-      if (exists.emailId === cleanEmailId) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: 'Email ID already registered',
-          },
-          { status: 409 },
-        )
-      }
+      if (exists.mobile === mobile) return fail('Mobile number already registered', 409)
+      return fail('Email ID already registered', 409)
     }
 
-    // =========================================================
-    // GENERATE REGISTRATION NUMBER
-    // =========================================================
+    const regNum = await nextRegNum()
 
-    const last = await Register.findOne().sort({
-      createdAt: -1,
-    })
-
-    let next = 1001
-
-    if (last?.regNum) {
-      const lastNumber = Number(last.regNum.split('-')[1])
-
-      if (!isNaN(lastNumber)) {
-        next = lastNumber + 1
-      }
-    }
-
-    const regNum = `PCBMV-${next}`
-
-    // =========================================================
-    // GENERATE QR CODE
-    // =========================================================
-
-    const qrCode =
-      `https://api.qrserver.com/v1/create-qr-code/` +
-      `?size=500x500` +
-      `&format=png` +
-      `&margin=10` +
-      `&data=${encodeURIComponent(regNum)}`
-
-    // =========================================================
-    // CREATE REGISTRATION
-    // =========================================================
-
-    const register = await Register.create({
-      name: cleanName,
-      designation: cleanDesignation,
-      institute: cleanInstitute,
-      mobileNo: cleanMobileNo,
-      emailId: cleanEmailId,
-      medicalCouncilNo: cleanMedicalCouncilNo,
-      medicalCouncilState: cleanMedicalCouncilState,
-
-      // Registration / QR
-      regNum,
-      generateQR: true,
-
-      // Attendance
-      dayOne: null,
-      dayTwo: null,
-    })
-
-    // =========================================================
-    // SEND CONFIRMATION EMAIL
-    // =========================================================
-
-    await sendEmail({
-      // Main recipient
-      to: cleanEmailId,
-
-      // Recipient name
-      name: cleanName,
-
-      // ZeptoMail template
-      templateKey:
-        '2518b.554b0da719bc314.k1.f9413ab1-9af6-11f1-bd88-62df313bf14d.1a0149af9d9',
-
-      // BCC recipients requested by client
-      bcc: ['bdm@medivisioneyecare.com', 'jaaved@medconevents.in' , 'meena.23@gmail.com'],
-
-      // Template merge fields
-      mergeInfo: {
-        name: cleanName,
-        regNum,
-        qrCode,
-      },
-    })
-
-    // =========================================================
-    // SUCCESS RESPONSE
-    // =========================================================
+    const register = await Register.create({ name, email, mobile, affiliation, regNum })
 
     return NextResponse.json(
       {
         success: true,
         message: 'Registration successful',
-        data: register,
+        data: {
+          regNum: register.regNum,
+          name: register.name,
+          email: register.email,
+        },
       },
       { status: 201 },
     )
-  } catch (error) {
+  } catch (error: any) {
     console.error('REGISTER ERROR:', error)
 
-    // =========================================================
-    // MONGODB DUPLICATE KEY ERROR
-    // =========================================================
-
-    if (
-      typeof error === 'object' &&
-      error !== null &&
-      'code' in error &&
-      error.code === 11000
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'Mobile No. or Email ID is already registered',
-        },
-        { status: 409 },
-      )
+    if (error?.code === 11000) {
+      return fail('Email ID or mobile number is already registered', 409)
     }
-
-    // =========================================================
-    // SERVER ERROR
-    // =========================================================
-
-    return NextResponse.json(
-      {
-        success: false,
-        message: 'Server error',
-      },
-      { status: 500 },
-    )
+    return fail('Server error', 500)
   }
 }
 
-// =============================================================
-// GET ALL REGISTRATIONS
-// =============================================================
-
-export async function GET() {
+// =========================================================
+// GET - ALL REGISTRATIONS
+// NOTE: this exposes everyone's name/email/phone to anyone who calls it.
+// Protect it with admin auth, or delete it if you don't need it.
+// =========================================================
+export async function GET(req: Request) {
   try {
+    const key = req.headers.get('x-admin-key')
+    if (!process.env.ADMIN_API_KEY || key !== process.env.ADMIN_API_KEY) {
+      return fail('Unauthorized', 401)
+    }
+
     await connectDB()
-
-    const data = await Register.find().sort({
-      createdAt: -1,
-    })
-
-    return NextResponse.json({
-      success: true,
-      data,
-    })
+    const data = await Register.find().sort({ createdAt: -1 })
+    return NextResponse.json({ success: true, data }, { status: 200 })
   } catch (error) {
     console.error('GET REGISTER ERROR:', error)
-
-    return NextResponse.json(
-      {
-        success: false,
-        message: 'Server error',
-      },
-      { status: 500 },
-    )
+    return fail('Server error', 500)
   }
 }

@@ -1,79 +1,48 @@
+
 import mongoose, { Schema, models } from 'mongoose'
 
 const RegisterSchema = new Schema(
   {
     name: {
       type: String,
-      required: true,
+      required: [true, 'Name is required'],
       trim: true,
     },
 
-    designation: {
+    email: {
       type: String,
-      required: true,
-      trim: true,
-    },
-
-    institute: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-
-    mobileNo: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-      match: [/^\d{10}$/, 'Mobile No. must be 10 digits'],
-    },
-
-    emailId: {
-      type: String,
-      required: true,
+      required: [true, 'Email is required'],
       unique: true,
       trim: true,
       lowercase: true,
-      match: [/^\S+@\S+\.\S+$/, 'Please enter a valid Email ID'],
+      match: [
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+        'Please enter a valid Email ID',
+      ],
     },
 
-    medicalCouncilNo: {
+    mobile: {
       type: String,
-      required: true,
+      required: [true, 'Mobile number is required'],
+      unique: true,
+      trim: true,
+      match: [
+        /^\+?[0-9]{10,13}$/,
+        'Mobile number must contain 10 to 13 digits, with an optional + prefix',
+      ],
+    },
+
+    affiliation: {
+      type: String,
+      required: [true, 'Affiliation / Organization is required'],
       trim: true,
     },
 
-    medicalCouncilState: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-
-    // Used for generating/identifying registration
+    // Generated automatically by backend
     regNum: {
       type: String,
       unique: true,
-      required: true,
-      trim: true,
-    },
-
-    // Used for QR generation/scanning
-    generateQR: {
-      type: Boolean,
-      default: false,
-    },
-
-    // Attendance / Day 1 scanning
-    dayOne: {
-      type: String,
-      default: null,
-      trim: true,
-    },
-
-    // Attendance / Day 2 scanning
-    dayTwo: {
-      type: String,
-      default: null,
+      required: [true, 'Registration number is required'],
       trim: true,
     },
   },
@@ -82,4 +51,5 @@ const RegisterSchema = new Schema(
   },
 )
 
-export default models.Register || mongoose.model('Register', RegisterSchema)
+export default models.Register ||
+  mongoose.model('Register', RegisterSchema)

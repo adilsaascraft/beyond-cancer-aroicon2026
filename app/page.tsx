@@ -1,749 +1,106 @@
-// 'use client'
 
-// import { useEffect, useState } from 'react'
-// import { QRCodeCanvas } from 'qrcode.react'
-// import * as htmlToImage from 'html-to-image'
-// import Image from 'next/image'
-// import Link from 'next/link'
-// import { useForm, Controller, useWatch } from 'react-hook-form'
-// import { zodResolver } from '@hookform/resolvers/zod'
-// import { Loader2, CheckCircle2, Download } from 'lucide-react'
-// import { toast } from 'sonner'
-// import { useFormDraftStore } from '@/stores/useFormDraftStore'
-// import { Card, CardContent } from '@/components/ui/card'
-// import { Button } from '@/components/ui/button'
-// import { Input } from '@/components/ui/input'
-// import { Label } from '@/components/ui/label'
-// import { Checkbox } from '@/components/ui/checkbox'
-// import { medicalCouncils } from '@/data/medicalCouncil'
+"use client";
 
-// import {
-//   Select,
-//   SelectContent,
-//   SelectItem,
-//   SelectTrigger,
-//   SelectValue,
-// } from '@/components/ui/select'
-
-// import { apiRequest } from '@/lib/apiRequest'
-// import { z } from 'zod'
-// import { EVEventRegistrationSchema } from '@/validations/registrationSchema'
-
-// type FormInput = z.input<typeof EVEventRegistrationSchema>
-// type FormOutput = z.output<typeof EVEventRegistrationSchema>
-
-// export default function EVreadyRegistrationPage() {
-//   const [submitting, setSubmitting] = useState(false)
-//   const [success, setSuccess] = useState(false)
-//   const [regNum, setRegNum] = useState<string | null>(null)
-//   const [showQr, setShowQr] = useState(false)
-//   const [agree, setAgree] = useState(false)
-//   const [termsError, setTermsError] = useState<string | null>(null)
-
-//   const DRAFT_KEY = 'ev-event-form'
-
-//   const webinarDraft = useFormDraftStore((state) => state.drafts[DRAFT_KEY])
-
-//   const setDraft = useFormDraftStore((state) => state.setDraft)
-//   const clearDraft = useFormDraftStore((state) => state.clearDraft)
-
-//   const {
-//     handleSubmit,
-//     control,
-//     reset,
-//     formState: { errors },
-//   } = useForm<FormInput, any, FormOutput>({
-//     resolver: zodResolver(EVEventRegistrationSchema),
-//     defaultValues: webinarDraft || {
-//       name: '',
-//       designation: '',
-//       institute: '',
-//       mobileNo: '',
-//       emailId: '',
-//       medicalCouncilNo: '',
-//       medicalCouncilState: '',
-//     },
-//   })
-
-//   const watchedValues = useWatch({ control })
-
-//   useEffect(() => {
-//     if (!success) {
-//       setDraft(DRAFT_KEY, watchedValues)
-//     }
-//   }, [watchedValues, success, setDraft])
-
-//   const handleNewRegistration = () => {
-//     reset({
-//       name: '',
-//       designation: '',
-//       institute: '',
-//       mobileNo: '',
-//       emailId: '',
-//       medicalCouncilNo: '',
-//       medicalCouncilState: '',
-//     })
-
-//     clearDraft(DRAFT_KEY)
-//     setAgree(false)
-//     setTermsError(null)
-//     setSuccess(false)
-//     setShowQr(false)
-//     setRegNum(null)
-//   }
-
-//   const onSubmit = async (data: FormOutput) => {
-//     if (!agree) {
-//       setTermsError('Please accept Terms & Conditions.')
-//       return
-//     }
-
-//     setTermsError(null)
-//     setSubmitting(true)
-
-//     try {
-//       const response = await apiRequest({
-//         endpoint: '/api/registers',
-//         method: 'POST',
-//         body: data,
-//       })
-
-//       if (!response?.data?.regNum) {
-//         throw new Error('Invalid response from server')
-//       }
-
-//       setRegNum(response.data.regNum)
-//       setSuccess(true)
-//       clearDraft(DRAFT_KEY)
-
-//       toast.success('Registration successful ⚡')
-
-//       setTimeout(() => {
-//         setShowQr(true)
-//       }, 1200)
-//     } catch (err: any) {
-//       toast.error(err.message || 'Something went wrong')
-//     } finally {
-//       setSubmitting(false)
-//     }
-//   }
-
-//   const downloadQrCard = async () => {
-//     const node = document.getElementById('evready-qr-card')
-
-//     if (!node) {
-//       toast.error('QR not ready yet')
-//       return
-//     }
-
-//     try {
-//       // Give QR time to render
-//       await new Promise((resolve) => setTimeout(resolve, 500))
-
-//       const rect = node.getBoundingClientRect()
-
-//       // Clone card
-//       const clone = node.cloneNode(true) as HTMLElement
-
-//       // Create isolated container
-//       const wrapper = document.createElement('div')
-
-//       Object.assign(wrapper.style, {
-//         position: 'fixed',
-//         left: '-100000px',
-//         top: '0',
-//         width: `${rect.width}px`,
-//         height: `${rect.height}px`,
-//         margin: '0',
-//         padding: '0',
-//         background: '#ffffff',
-//         overflow: 'visible',
-//         transform: 'none',
-//       })
-
-//       Object.assign(clone.style, {
-//         position: 'relative',
-//         left: '0',
-//         top: '0',
-//         right: 'auto',
-//         bottom: 'auto',
-//         margin: '0',
-//         transform: 'none',
-//         width: `${rect.width}px`,
-//         height: `${rect.height}px`,
-//         maxWidth: 'none',
-//         maxHeight: 'none',
-//       })
-
-//       wrapper.appendChild(clone)
-//       document.body.appendChild(wrapper)
-
-//       /*
-//        * IMPORTANT:
-//        * html-to-image does not reliably preserve the contents
-//        * of cloned <canvas> elements.
-//        *
-//        * Convert canvas QR codes into images.
-//        */
-//       const originalCanvases = node.querySelectorAll('canvas')
-//       const clonedCanvases = clone.querySelectorAll('canvas')
-
-//       originalCanvases.forEach((originalCanvas, index) => {
-//         const clonedCanvas = clonedCanvases[index]
-
-//         if (!clonedCanvas) return
-
-//         try {
-//           const img = document.createElement('img')
-
-//           img.src = originalCanvas.toDataURL('image/png')
-
-//           img.width = originalCanvas.width
-//           img.height = originalCanvas.height
-
-//           // Preserve the canvas's rendered size
-//           const canvasStyle = window.getComputedStyle(originalCanvas)
-
-//           img.style.width = canvasStyle.width
-//           img.style.height = canvasStyle.height
-//           img.style.display = canvasStyle.display
-//           img.style.objectFit = 'contain'
-
-//           clonedCanvas.parentNode?.replaceChild(img, clonedCanvas)
-//         } catch (err) {
-//           console.error('Could not convert QR canvas:', err)
-//         }
-//       })
-
-//       // Wait for converted QR images to load
-//       const images = Array.from(clone.querySelectorAll('img'))
-
-//       await Promise.all(
-//         images.map((img) => {
-//           if (img.complete) return Promise.resolve()
-
-//           return new Promise<void>((resolve) => {
-//             img.onload = () => resolve()
-//             img.onerror = () => resolve()
-//           })
-//         }),
-//       )
-
-//       // Allow browser to finish layout
-//       await new Promise((resolve) =>
-//         requestAnimationFrame(() => requestAnimationFrame(resolve)),
-//       )
-
-//       const blob = await htmlToImage.toBlob(clone, {
-//         backgroundColor: '#ffffff',
-//         pixelRatio: 3,
-//         cacheBust: true,
-//         width: rect.width,
-//         height: rect.height,
-
-//         style: {
-//           margin: '0',
-//           padding: '0',
-//           transform: 'none',
-//           position: 'relative',
-//           left: '0',
-//           top: '0',
-//         },
-//       })
-
-//       // Remove temporary DOM
-//       document.body.removeChild(wrapper)
-
-//       if (!blob) {
-//         throw new Error('PNG generation failed')
-//       }
-
-//       // Download
-//       const url = URL.createObjectURL(blob)
-
-//       const link = document.createElement('a')
-//       link.href = url
-//       link.download = `${regNum}-qr.png`
-
-//       document.body.appendChild(link)
-//       link.click()
-//       document.body.removeChild(link)
-
-//       setTimeout(() => {
-//         URL.revokeObjectURL(url)
-//       }, 1000)
-//     } catch (error) {
-//       console.error('QR download error:', error)
-//       toast.error('Download failed. Try again.')
-//     }
-//   }
-
-//   return (
-//     <div
-//       className="flex min-h-svh flex-col bg-gradient-to-br from-orange-200 via-orange-300 to-amber-200
-// "
-//     >
-//       {/* =========================================================
-//           BANNER
-//       ========================================================= */}
-//       <div className="relative w-full aspect-[19/4] overflow-hidden">
-//         <Image
-//           src="/banner.png"
-//           alt="Medivision"
-//           fill
-//           priority
-//           sizes="100vw"
-//           className="object-cover"
-//         />
-//       </div>
-
-//       {/* =========================================================
-//           MAIN CONTENT
-//       ========================================================= */}
-//       <main className="flex flex-1 items-center justify-center px-3 py-6 sm:px-5 sm:py-10">
-//         <Card className="w-full max-w-4xl border-white/30 bg-white/95 shadow-2xl backdrop-blur">
-//           <CardContent className="p-4 sm:p-6 md:p-8">
-//             {!success ? (
-//               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-//                 {/* =====================================================
-//                     HEADER
-//                 ===================================================== */}
-//                 <div className="border-b border-orange-200 pb-5 text-center">
-//                   <h1 className="text-xl font-bold text-orange-700 sm:text-2xl">
-//                     PRACTITIONER'S CONCLAVE 2026
-//                   </h1>
-
-//                   <p className="mt-1 text-xs text-gray-600 sm:text-sm">
-//                     By MediVision Eye Care Center
-//                   </p>
-
-//                   <p className="mt-3 text-sm font-bold uppercase tracking-wide text-orange-600">
-//                     Registration Form
-//                   </p>
-//                 </div>
-
-//                 {/* =====================================================
-//                     FORM
-//                     1 column mobile
-//                     2 columns tablet/laptop
-//                 ===================================================== */}
-//                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-//                   {/* Name */}
-//                   <Field label="Full Name" error={errors.name?.message}>
-//                     <Controller
-//                       name="name"
-//                       control={control}
-//                       render={({ field }) => (
-//                         <Input
-//                           {...field}
-//                           placeholder="Enter your full name eg. Dr. Kumar Reddy"
-//                           className="border-orange-200 bg-white text-black placeholder:text-gray-400 focus-visible:ring-orange-500"
-//                         />
-//                       )}
-//                     />
-//                   </Field>
-
-//                   {/* Designation */}
-//                   <Field
-//                     label="Designation"
-//                     error={errors.designation?.message}
-//                   >
-//                     <Controller
-//                       name="designation"
-//                       control={control}
-//                       render={({ field }) => (
-//                         <Input
-//                           {...field}
-//                           placeholder="Enter your designation"
-//                           className="border-orange-200 bg-white text-black placeholder:text-gray-400 focus-visible:ring-orange-500"
-//                         />
-//                       )}
-//                     />
-//                   </Field>
-
-//                   {/* Institute */}
-//                   <Field label="Institute" error={errors.institute?.message}>
-//                     <Controller
-//                       name="institute"
-//                       control={control}
-//                       render={({ field }) => (
-//                         <Input
-//                           {...field}
-//                           placeholder="Enter institute name"
-//                           className="border-orange-200 bg-white text-black placeholder:text-gray-400 focus-visible:ring-orange-500"
-//                         />
-//                       )}
-//                     />
-//                   </Field>
-
-//                   {/* Mobile */}
-//                   <Field label="Mobile No." error={errors.mobileNo?.message}>
-//                     <Controller
-//                       name="mobileNo"
-//                       control={control}
-//                       render={({ field }) => (
-//                         <Input
-//                           {...field}
-//                           type="tel"
-//                           inputMode="numeric"
-//                           maxLength={10}
-//                           placeholder="Enter 10 digit mobile number"
-//                           className="border-orange-200 bg-white text-black placeholder:text-gray-400 focus-visible:ring-orange-500"
-//                           onChange={(e) => {
-//                             field.onChange(e.target.value.replace(/\D/g, ''))
-//                           }}
-//                         />
-//                       )}
-//                     />
-//                   </Field>
-
-//                   {/* Email */}
-//                   <Field label="Email ID" error={errors.emailId?.message}>
-//                     <Controller
-//                       name="emailId"
-//                       control={control}
-//                       render={({ field }) => (
-//                         <Input
-//                           {...field}
-//                           type="email"
-//                           placeholder="Enter your email ID"
-//                           className="border-orange-200 bg-white text-black placeholder:text-gray-400 focus-visible:ring-orange-500"
-//                           onChange={(e) => {
-//                             field.onChange(e.target.value.toLowerCase())
-//                           }}
-//                         />
-//                       )}
-//                     />
-//                   </Field>
-
-//                   {/* Medical Council No */}
-//                   <Field
-//                     label="Medical Council No."
-//                     error={errors.medicalCouncilNo?.message}
-//                   >
-//                     <Controller
-//                       name="medicalCouncilNo"
-//                       control={control}
-//                       render={({ field }) => (
-//                         <Input
-//                           {...field}
-//                           placeholder="Enter medical council number"
-//                           className="border-orange-200 bg-white text-black placeholder:text-gray-400 focus-visible:ring-orange-500"
-//                         />
-//                       )}
-//                     />
-//                   </Field>
-
-//                   {/* Medical Council State */}
-//                   <Field
-//                     label="Medical Council State"
-//                     error={errors.medicalCouncilState?.message}
-//                   >
-//                     <Controller
-//                       name="medicalCouncilState"
-//                       control={control}
-//                       render={({ field }) => (
-//                         <Select
-//                           value={field.value}
-//                           onValueChange={field.onChange}
-//                         >
-//                           <SelectTrigger className="w-full border-orange-200 bg-white p-3 text-black focus:ring-orange-500">
-//                             <SelectValue placeholder="Select medical council state" />
-//                           </SelectTrigger>
-
-//                           <SelectContent>
-//                             {medicalCouncils.map((council) => (
-//                               <SelectItem
-//                                 key={council.value}
-//                                 value={council.value}
-//                               >
-//                                 {council.label}
-//                               </SelectItem>
-//                             ))}
-//                           </SelectContent>
-//                         </Select>
-//                       )}
-//                     />
-//                   </Field>
-//                 </div>
-
-//                 {/* =====================================================
-//                     TERMS
-//                 ===================================================== */}
-//                 <div className="rounded-lg border border-orange-200 bg-orange-50 p-3">
-//                   <div className="flex items-start gap-3">
-//                     <Checkbox
-//                       checked={agree}
-//                       onCheckedChange={(value) => {
-//                         setAgree(!!value)
-
-//                         if (value) {
-//                           setTermsError(null)
-//                         }
-//                       }}
-//                       className="mt-0.5 border-orange-500 data-[state=checked]:bg-orange-600 data-[state=checked]:border-orange-600"
-//                     />
-
-//                     <Label className="cursor-pointer text-sm leading-5 text-gray-700">
-//                       I agree to{' '}
-//                       <Link
-//                         href="/term-and-condition"
-//                         className="font-semibold text-orange-600 underline hover:text-orange-700"
-//                       >
-//                         Terms and Conditions
-//                       </Link>
-//                     </Label>
-//                   </div>
-
-//                   {termsError && (
-//                     <p className="mt-2 text-sm text-red-600">{termsError}</p>
-//                   )}
-//                 </div>
-
-//                 {/* =====================================================
-//                     REGISTER BUTTON
-//                 ===================================================== */}
-//                 <Button
-//                   type="submit"
-//                   disabled={submitting}
-//                   className="h-11 w-full bg-orange-600 font-semibold text-white transition-colors hover:bg-orange-700"
-//                 >
-//                   {submitting && (
-//                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-//                   )}
-
-//                   {submitting ? 'Registering...' : 'Register Now'}
-//                 </Button>
-//               </form>
-//             ) : (
-//               /* =======================================================
-//                  SUCCESS SCREEN
-//               ======================================================= */
-//               <div className="px-2 py-8 text-center sm:px-6 sm:py-10">
-//                 <div className="flex justify-center">
-//                   <div className="rounded-full bg-orange-100 p-5">
-//                     <CheckCircle2 className="h-16 w-16 text-orange-600" />
-//                   </div>
-//                 </div>
-
-//                 <h2 className="mt-6 text-2xl font-bold text-orange-700">
-//                   Registration Successful 🎉
-//                 </h2>
-
-//                 <p className="mt-2 text-sm text-gray-600">
-//                   Your registration for{' '}
-//                   <span className="font-semibold text-gray-800">
-//                     PRACTITIONER'S CONCLAVE 2026
-//                   </span>{' '}
-//                   is confirmed.
-//                 </p>
-
-//                 {regNum && (
-//                   <div className="mt-4 inline-block rounded-full border border-orange-200 bg-orange-50 px-5 py-2 text-sm font-semibold text-orange-700">
-//                     Registration No: {regNum}
-//                   </div>
-//                 )}
-
-//                 {/* =====================================================
-//                     QR CARD
-//                 ===================================================== */}
-//                 {showQr && (
-//                   <div className="mt-8 space-y-5">
-//                     <div
-//                       id="evready-qr-card"
-//                       className="relative mx-auto w-[320px] max-w-full overflow-hidden rounded-2xl border bg-white shadow-xl"
-//                     >
-//                       {/* QR HEADER */}
-//                       <div className="bg-gradient-to-r from-orange-700 via-orange-600 to-amber-500 py-3 text-center text-white">
-//                         <p className="text-sm font-semibold">
-//                           PRACTITIONER'S CONCLAVE 2026
-//                         </p>
-
-//                         <p className="text-xs opacity-90">
-//                           By MediVision Eye Care Center
-//                         </p>
-//                       </div>
-
-//                       {/* QR BODY */}
-//                       <div className="relative flex flex-col items-center space-y-4 p-6">
-//                         {/* WATERMARK */}
-//                         <Image
-//                           src="/logo.png"
-//                           alt="logo"
-//                           width={120}
-//                           height={120}
-//                           className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-10"
-//                         />
-
-//                         {/* QR */}
-//                         <div className="relative z-10 mt-3 flex justify-center">
-//                           <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-//                             <QRCodeCanvas value={regNum ?? ''} size={160} />
-//                           </div>
-//                         </div>
-
-//                         <p className="relative z-10 text-xs text-gray-500">
-//                           Scan at entry gate
-//                         </p>
-
-//                         <div className="w-full border-t border-dashed border-gray-300" />
-
-//                         <div className="text-xs text-gray-600">
-//                           Valid for entry • Do not share
-//                         </div>
-//                       </div>
-//                     </div>
-
-//                     {/* DOWNLOAD */}
-//                     <div className="flex gap-2">
-//                       <Button
-//                         type="button"
-//                         variant="outline"
-//                         onClick={downloadQrCard}
-//                         className="w-full border-orange-300 text-orange-700 hover:bg-orange-50 hover:text-orange-800"
-//                       >
-//                         <Download className="mr-2 h-4 w-4" />
-//                         Download QR Code
-//                       </Button>
-//                     </div>
-//                   </div>
-//                 )}
-
-//                 {/* NEW REGISTRATION */}
-//                 <div className="my-8 border-t border-gray-200" />
-
-//                 <Button
-//                   type="button"
-//                   onClick={handleNewRegistration}
-//                   className="w-full bg-orange-600 font-semibold text-white hover:bg-orange-700"
-//                 >
-//                   New Registration
-//                 </Button>
-//               </div>
-//             )}
-//           </CardContent>
-//         </Card>
-//       </main>
-
-//       {/* =========================================================
-//           FOOTER
-//       ========================================================= */}
-//       <footer className="border-t border-white/20 bg-black/10 backdrop-blur">
-//         <div className="mx-auto max-w-7xl px-4 py-4 text-center text-sm text-white">
-//           © {new Date().getFullYear()} All Rights Reserved. Powered by SaaScraft
-//           Studio (India) Pvt. Ltd.
-//         </div>
-//       </footer>
-//     </div>
-//   )
-// }
-
-// /* ===============================================================
-//    REUSABLE FIELD
-// ================================================================ */
-
-// function Field({
-//   label,
-//   error,
-//   children,
-// }: {
-//   label: string
-//   error?: string
-//   children: React.ReactNode
-// }) {
-//   return (
-//     <div className="grid gap-1.5">
-//       <Label className="font-medium text-gray-800">
-//         {label} <span className="text-orange-600">*</span>
-//       </Label>
-
-//       {children}
-
-//       {error && <p className="text-sm text-red-600">{error}</p>}
-//     </div>
-//   )
-// }
-
-
-
-
-
-
-'use client'
-
-import { useEffect, useState } from 'react'
-import { QRCodeCanvas } from 'qrcode.react'
-import * as htmlToImage from 'html-to-image'
-import Image from 'next/image'
-import Link from 'next/link'
-import { useForm, Controller, useWatch } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2, CheckCircle2, Download } from 'lucide-react'
-import { toast } from 'sonner'
-import { useFormDraftStore } from '@/stores/useFormDraftStore'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
-import { medicalCouncils } from '@/data/medicalCouncil'
-
+import { useEffect, useState, type ReactNode } from "react";
+import Image from "next/image";
+import { useForm, Controller, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  Loader2,
+  CheckCircle2,
+  CalendarDays,
+  Clock3,
+  MapPin,
+  UserRound,
+  Mail,
+  Phone,
+  Building2,
+  Sparkles,
+  ShieldCheck,
+  ArrowRight,
+  CalendarCheck,
+} from "lucide-react";
+import { toast } from "sonner";
+import { z } from "zod";
 
-import { apiRequest } from '@/lib/apiRequest'
-import { z } from 'zod'
-import { EVEventRegistrationSchema } from '@/validations/registrationSchema'
+import { useFormDraftStore } from "@/stores/useFormDraftStore";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
-type FormInput = z.input<typeof EVEventRegistrationSchema>
-type FormOutput = z.output<typeof EVEventRegistrationSchema>
+import { EVEventRegistrationSchema } from "@/validations/registrationSchema";
+import { gradients } from "@/lib/colors";
 
-/*
-|--------------------------------------------------------------------------
-| REGISTRATION STATUS
-|--------------------------------------------------------------------------
-|
-| CURRENTLY:
-| Registration is CLOSED.
-|
-| NEXT TIME YOU WANT TO OPEN REGISTRATION:
-|
-| Change:
-|
-|   const REGISTRATION_OPEN = false
-|
-| To:
-|
-|   const REGISTRATION_OPEN = true
-|
-| That's all you need to change.
-|
-|--------------------------------------------------------------------------
-*/
+type FormInput = z.input<typeof EVEventRegistrationSchema>;
+type FormOutput = z.output<typeof EVEventRegistrationSchema>;
 
-const REGISTRATION_OPEN = false
+const REGISTRATION_OPEN = true;
+const DRAFT_KEY = "aroicon-2026-participant-form";
+
+const INITIAL_VALUES: FormInput = {
+  name: "",
+  email: "",
+  mobile: "",
+  affiliation: "",
+};
+
+interface FieldProps {
+  label: string;
+  error?: string;
+  icon: ReactNode;
+  children: ReactNode;
+}
+
+function Field({ label, error, icon, children }: FieldProps) {
+  return (
+    <div className="min-w-0 space-y-2">
+      <Label className="flex items-center gap-1.5 text-sm font-semibold text-slate-700">
+        {label}
+        <span className="text-red-500">*</span>
+      </Label>
+
+      <div
+        className={`group flex min-h-12 items-center gap-3 rounded-xl border bg-white px-3 transition-all duration-200 ${
+          error
+            ? "border-red-300 ring-2 ring-red-100"
+            : "border-slate-200 hover:border-sky-300 focus-within:border-sky-500 focus-within:ring-2 focus-within:ring-sky-100"
+        }`}
+      >
+        <span
+          className={`shrink-0 ${
+            error
+              ? "text-red-400"
+              : "text-slate-400 group-focus-within:text-sky-600"
+          }`}
+        >
+          {icon}
+        </span>
+
+        <div className="min-w-0 flex-1 [&_input]:h-11 [&_input]:border-0 [&_input]:bg-transparent [&_input]:px-0 [&_input]:text-sm [&_input]:text-slate-800 [&_input]:shadow-none [&_input]:outline-none [&_input]:ring-0 [&_input]:placeholder:text-slate-400 [&_input]:focus-visible:ring-0">
+          {children}
+        </div>
+      </div>
+
+      {error && (
+        <p className="flex items-center gap-1 text-xs font-medium text-red-600">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
 
 export default function EVreadyRegistrationPage() {
-  const [submitting, setSubmitting] = useState(false)
-  const [success, setSuccess] = useState(false)
-  const [regNum, setRegNum] = useState<string | null>(null)
-  const [showQr, setShowQr] = useState(false)
-  const [agree, setAgree] = useState(false)
-  const [termsError, setTermsError] = useState<string | null>(null)
-
-  const DRAFT_KEY = 'ev-event-form'
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [regNum, setRegNum] = useState<string | null>(null);
 
   const webinarDraft = useFormDraftStore(
-    (state) => state.drafts[DRAFT_KEY],
-  )
+    (state) => state.drafts[DRAFT_KEY]
+  );
 
-  const setDraft = useFormDraftStore((state) => state.setDraft)
-  const clearDraft = useFormDraftStore((state) => state.clearDraft)
+  const setDraft = useFormDraftStore((state) => state.setDraft);
+  const clearDraft = useFormDraftStore((state) => state.clearDraft);
 
   const {
     handleSubmit,
@@ -752,352 +109,388 @@ export default function EVreadyRegistrationPage() {
     formState: { errors },
   } = useForm<FormInput, any, FormOutput>({
     resolver: zodResolver(EVEventRegistrationSchema),
-    defaultValues: webinarDraft || {
-      name: '',
-      designation: '',
-      institute: '',
-      mobileNo: '',
-      emailId: '',
-      medicalCouncilNo: '',
-      medicalCouncilState: '',
-    },
-  })
+    defaultValues: webinarDraft || INITIAL_VALUES,
+  });
 
-  const watchedValues = useWatch({ control })
+  const watchedValues = useWatch({ control });
 
+  // Save form draft
   useEffect(() => {
     if (!success) {
-      setDraft(DRAFT_KEY, watchedValues)
+      setDraft(DRAFT_KEY, watchedValues);
     }
-  }, [watchedValues, success, setDraft])
+  }, [watchedValues, success, setDraft]);
 
+  // Reset form for a new participant
   const handleNewRegistration = () => {
-    reset({
-      name: '',
-      designation: '',
-      institute: '',
-      mobileNo: '',
-      emailId: '',
-      medicalCouncilNo: '',
-      medicalCouncilState: '',
-    })
+    reset(INITIAL_VALUES);
+    clearDraft(DRAFT_KEY);
+    setSuccess(false);
+    setRegNum(null);
+  };
 
-    clearDraft(DRAFT_KEY)
-    setAgree(false)
-    setTermsError(null)
-    setSuccess(false)
-    setShowQr(false)
-    setRegNum(null)
-  }
-
+  // Submit registration
   const onSubmit = async (data: FormOutput) => {
-    if (!agree) {
-      setTermsError('Please accept Terms & Conditions.')
-      return
-    }
-
-    setTermsError(null)
-    setSubmitting(true)
+    setSubmitting(true);
 
     try {
-      const response = await apiRequest({
-        endpoint: '/api/registers',
-        method: 'POST',
-        body: data,
-      })
+      const res = await fetch("/api/registers", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      let response: any = null;
+
+      try {
+        response = await res.json();
+      } catch {
+        // Handle non-JSON response
+      }
+
+      if (!res.ok || !response?.success) {
+        throw new Error(
+          response?.message ||
+            "Registration failed. Please try again."
+        );
+      }
 
       if (!response?.data?.regNum) {
-        throw new Error('Invalid response from server')
+        throw new Error("Invalid response from server");
       }
 
-      setRegNum(response.data.regNum)
-      setSuccess(true)
-      clearDraft(DRAFT_KEY)
+      setRegNum(response.data.regNum);
+      setSuccess(true);
+      clearDraft(DRAFT_KEY);
 
-      toast.success('Registration successful ⚡')
-
-      setTimeout(() => {
-        setShowQr(true)
-      }, 1200)
+      toast.success("Participation confirmed successfully!");
     } catch (err: any) {
-      toast.error(err.message || 'Something went wrong')
+      toast.error(
+        err.message || "Something went wrong. Please try again."
+      );
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
+  };
+
+  // =========================================================
+  // SUCCESS SCREEN
+  // Render separately to avoid banner/footer scrolling
+  // =========================================================
+
+  if (success) {
+    return (
+      <main className="flex min-h-svh w-full items-center justify-center overflow-x-hidden bg-gradient-to-br from-sky-50 via-white to-indigo-100 px-3 py-3 sm:px-5">
+
+        <div className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-white/80 bg-white/95 p-4 text-center shadow-xl shadow-sky-900/10 sm:p-6">
+
+          {/* Decorative top gradient */}
+          <div
+            className="absolute left-0 top-0 h-1.5 w-full"
+            style={{ background: gradients.primary }}
+          />
+
+          {/* SUCCESS ICON */}
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-emerald-100 to-green-200 shadow-inner">
+            <CheckCircle2
+              className="h-10 w-10 text-emerald-600"
+              strokeWidth={2.5}
+            />
+          </div>
+
+          {/* SUCCESS MESSAGE */}
+          <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-sky-900 sm:text-3xl">
+            Registration Successful!
+          </h1>
+
+          <p className="mx-auto mt-1 max-w-sm text-sm leading-5 text-gray-500">
+            Your participation has been successfully registered.
+            We look forward to welcoming you!
+          </p>
+
+          {/* REGISTRATION NUMBER */}
+          {regNum && (
+            <div className="mx-auto mt-3 inline-flex items-center gap-2 rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-2">
+              <ShieldCheck className="h-4 w-4 text-emerald-600" />
+              <div className="text-left">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700">
+                  Registration Number
+                </p>
+                <p className="text-sm font-extrabold tracking-wide text-emerald-900">
+                  {regNum}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* CONFERENCE DETAILS */}
+          <div className="mt-4 rounded-xl border border-sky-100 bg-gradient-to-br from-sky-50 to-indigo-50 p-4 text-left">
+
+            <div className="mb-3 text-center">
+              <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-sky-600">
+                Conference
+              </p>
+
+              <h2 className="mt-1 text-base font-extrabold leading-6 text-sky-950 sm:text-lg">
+                46th Annual Conference AROICON 2026
+              </h2>
+
+              <div className="mx-auto mt-2 h-1 w-12 rounded-full bg-gradient-to-r from-fuchsia-500 via-purple-500 to-sky-500" />
+
+              <p className="mt-2 text-sm font-semibold text-purple-800">
+                Beyond Cancer - Stories Of Courage
+              </p>
+            </div>
+
+            {/* SESSION INFORMATION */}
+            <div className="grid grid-cols-1 gap-2 border-t border-sky-200/70 pt-3 sm:grid-cols-3">
+
+              <div className="flex items-center gap-2 sm:flex-col sm:items-center sm:text-center">
+                <CalendarDays className="h-5 w-5 shrink-0 text-sky-600" />
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                    Date
+                  </p>
+                  <p className="text-xs font-semibold text-sky-950">
+                    Saturday, 05 December 2026
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 sm:flex-col sm:items-center sm:text-center">
+                <Clock3 className="h-5 w-5 shrink-0 text-sky-600" />
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                    Time
+                  </p>
+                  <p className="text-xs font-semibold text-sky-950">
+                    11:00 AM - 12:00 PM
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 sm:flex-col sm:items-center sm:text-center">
+                <MapPin className="h-5 w-5 shrink-0 text-sky-600" />
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                    Venue
+                  </p>
+                  <p className="text-xs font-semibold text-sky-950">
+                    HICC, Novotel Hyderabad
+                  </p>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          {/* NEW PARTICIPANT BUTTON */}
+          <Button
+            type="button"
+            onClick={handleNewRegistration}
+            style={{ background: gradients.primary }}
+            className="mt-4 h-11 w-full rounded-xl border-0 font-bold text-white shadow-md transition-all duration-300 hover:opacity-90 hover:shadow-lg"
+          >
+            Register Another Participant
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+
+          <p className="mt-2 text-[10px] font-medium text-gray-400">
+            Powered by SaaScraft Studio
+          </p>
+
+        </div>
+      </main>
+    );
   }
 
-  const downloadQrCard = async () => {
-    const node = document.getElementById('evready-qr-card')
-
-    if (!node) {
-      toast.error('QR not ready yet')
-      return
-    }
-
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 500))
-
-      const rect = node.getBoundingClientRect()
-
-      const clone = node.cloneNode(true) as HTMLElement
-
-      const wrapper = document.createElement('div')
-
-      Object.assign(wrapper.style, {
-        position: 'fixed',
-        left: '-100000px',
-        top: '0',
-        width: `${rect.width}px`,
-        height: `${rect.height}px`,
-        margin: '0',
-        padding: '0',
-        background: '#ffffff',
-        overflow: 'visible',
-        transform: 'none',
-      })
-
-      Object.assign(clone.style, {
-        position: 'relative',
-        left: '0',
-        top: '0',
-        right: 'auto',
-        bottom: 'auto',
-        margin: '0',
-        transform: 'none',
-        width: `${rect.width}px`,
-        height: `${rect.height}px`,
-        maxWidth: 'none',
-        maxHeight: 'none',
-      })
-
-      wrapper.appendChild(clone)
-      document.body.appendChild(wrapper)
-
-      /*
-       * IMPORTANT:
-       * html-to-image does not reliably preserve canvas contents.
-       * Convert QR canvas into image before generating PNG.
-       */
-
-      const originalCanvases = node.querySelectorAll('canvas')
-      const clonedCanvases = clone.querySelectorAll('canvas')
-
-      originalCanvases.forEach((originalCanvas, index) => {
-        const clonedCanvas = clonedCanvases[index]
-
-        if (!clonedCanvas) return
-
-        try {
-          const img = document.createElement('img')
-
-          img.src = originalCanvas.toDataURL('image/png')
-
-          img.width = originalCanvas.width
-          img.height = originalCanvas.height
-
-          const canvasStyle = window.getComputedStyle(originalCanvas)
-
-          img.style.width = canvasStyle.width
-          img.style.height = canvasStyle.height
-          img.style.display = canvasStyle.display
-          img.style.objectFit = 'contain'
-
-          clonedCanvas.parentNode?.replaceChild(img, clonedCanvas)
-        } catch (err) {
-          console.error('Could not convert QR canvas:', err)
-        }
-      })
-
-      const images = Array.from(clone.querySelectorAll('img'))
-
-      await Promise.all(
-        images.map((img) => {
-          if (img.complete) return Promise.resolve()
-
-          return new Promise<void>((resolve) => {
-            img.onload = () => resolve()
-            img.onerror = () => resolve()
-          })
-        }),
-      )
-
-      await new Promise((resolve) =>
-        requestAnimationFrame(() =>
-          requestAnimationFrame(resolve),
-        ),
-      )
-
-      const blob = await htmlToImage.toBlob(clone, {
-        backgroundColor: '#ffffff',
-        pixelRatio: 3,
-        cacheBust: true,
-        width: rect.width,
-        height: rect.height,
-
-        style: {
-          margin: '0',
-          padding: '0',
-          transform: 'none',
-          position: 'relative',
-          left: '0',
-          top: '0',
-        },
-      })
-
-      document.body.removeChild(wrapper)
-
-      if (!blob) {
-        throw new Error('PNG generation failed')
-      }
-
-      const url = URL.createObjectURL(blob)
-
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `${regNum}-qr.png`
-
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-
-      setTimeout(() => {
-        URL.revokeObjectURL(url)
-      }, 1000)
-    } catch (error) {
-      console.error('QR download error:', error)
-      toast.error('Download failed. Try again.')
-    }
-  }
+  // =========================================================
+  // MAIN REGISTRATION PAGE
+  // =========================================================
 
   return (
-    <div
-      className="
-        flex min-h-svh flex-col
-        bg-gradient-to-br from-orange-200 via-orange-300 to-amber-200
-      "
-    >
-      {/* =========================================================
-          BANNER
-      ========================================================= */}
+    <div className="flex min-h-screen flex-col overflow-x-hidden bg-gradient-to-br from-sky-50 via-white to-indigo-100">
 
-      <div className="relative w-full aspect-[19/4] overflow-hidden">
+      {/* ================= BANNER ================= */}
+      <header className="relative w-full overflow-hidden bg-white">
         <Image
           src="/banner.png"
-          alt="Medivision"
-          fill
+          alt="46th Annual Conference AROICON 2026 - Beyond Cancer: Stories of Courage"
+          width={1920}
+          height={400}
           priority
           sizes="100vw"
-          className="object-cover"
+          className="block h-auto max-h-[260px] w-full object-cover object-center sm:max-h-none"
         />
-      </div>
+      </header>
 
-      {/* =========================================================
-          MAIN CONTENT
-      ========================================================= */}
-
+      {/* ================= MAIN CONTENT ================= */}
       <main className="flex flex-1 items-center justify-center px-3 py-6 sm:px-5 sm:py-10">
-        <Card className="w-full max-w-4xl border-white/30 bg-white/95 shadow-2xl backdrop-blur">
-          <CardContent className="p-4 sm:p-6 md:p-8">
 
-            {/* =====================================================
-                REGISTRATION CLOSED SCREEN
-            ===================================================== */}
+        <div className="w-full max-w-6xl overflow-hidden rounded-2xl border border-white bg-white shadow-xl shadow-sky-900/10">
 
-            {!REGISTRATION_OPEN ? (
-              <div className="px-2 py-10 text-center sm:px-6 sm:py-14">
+          {!REGISTRATION_OPEN ? (
 
-                <div className="flex justify-center">
-                  <div className="rounded-full bg-red-100 p-5">
-                    <CheckCircle2 className="h-16 w-16 text-red-600" />
-                  </div>
-                </div>
+            /* ================= REGISTRATION CLOSED ================= */
+            <div className="flex min-h-[400px] flex-col items-center justify-center px-5 py-12 text-center">
 
-                <h1 className="mt-6 text-2xl font-bold text-orange-700 sm:text-3xl">
-                  Registration Closed
-                </h1>
-
-                <p className="mt-2 text-lg font-semibold text-gray-800">
-                  Registration Closed for this Event
-                </p>
-
-                <p className="mt-4 text-sm font-medium text-gray-600 sm:text-base">
-                  PRACTITIONER&apos;S CONCLAVE 2026
-                </p>
-
-                <div className="mx-auto mt-6 max-w-md rounded-xl border border-orange-200 bg-orange-50 p-5">
-                  <p className="text-sm font-medium text-gray-600">
-                    Closing Time
-                  </p>
-
-                  <p className="mt-2 text-base font-bold text-orange-700 sm:text-lg">
-                    Saturday, 29 August 2026 at 2:00 PM
-                  </p>
-                </div>
-
-                <p className="mx-auto mt-6 max-w-lg text-sm leading-6 text-gray-500">
-                  Thank you for your interest in the event.
-                  Registration is no longer accepting new entries.
-                </p>
-
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-50">
+                <CalendarCheck className="h-10 w-10 text-red-500" />
               </div>
-            ) : (
 
-              /*
-              =========================================================
-              REGISTRATION FORM
+              <h1 className="mt-5 text-2xl font-extrabold text-sky-900 sm:text-3xl">
+                Registration Closed
+              </h1>
 
-              REGISTRATION IS CURRENTLY CLOSED.
+              <p className="mt-2 max-w-md text-sm leading-6 text-gray-500">
+                Registration is currently closed for this event.
+                Thank you for your interest in AROICON 2026.
+              </p>
 
-              DO NOT DELETE THIS FORM.
+              <p className="mt-4 text-sm font-bold text-sky-800">
+                46th Annual Conference AROICON 2026
+              </p>
+            </div>
 
-              When you want to reopen registration, simply change:
+          ) : (
 
-                  const REGISTRATION_OPEN = false
+            <div className="grid grid-cols-1 lg:grid-cols-[0.85fr_1.15fr]">
 
-              to:
+              {/* ================= LEFT CONFERENCE PANEL ================= */}
+              <aside className="relative overflow-hidden bg-gradient-to-br from-sky-950 via-indigo-950 to-slate-900 p-6 text-white sm:p-8 lg:p-10">
 
-                  const REGISTRATION_OPEN = true
+                {/* Decorative circles */}
+                <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full border border-white/10" />
+                <div className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full border border-white/10" />
+                <div className="pointer-events-none absolute -bottom-28 -left-20 h-64 w-64 rounded-full bg-sky-400/10 blur-2xl" />
 
-              The complete registration form will automatically become
-              active again.
+                <div className="relative z-10 flex h-full flex-col">
 
-              =========================================================
-              */
+                  <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-sky-100 backdrop-blur">
+                    <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+                    Official Participant Registration
+                  </div>
 
-              !success ? (
+                  <p className="mt-8 text-xs font-bold uppercase tracking-[0.2em] text-sky-300">
+                    Welcome to
+                  </p>
+
+                  <h1 className="mt-2 text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl">
+                    46th Annual Conference
+                    <span className="mt-1 block bg-gradient-to-r from-sky-300 via-purple-300 to-pink-300 bg-clip-text text-transparent">
+                      AROICON 2026
+                    </span>
+                  </h1>
+
+                  <div className="my-5 h-1 w-16 rounded-full bg-gradient-to-r from-fuchsia-400 via-purple-400 to-sky-400" />
+
+                  <p className="max-w-md text-lg font-semibold leading-relaxed text-white">
+                    Beyond Cancer - Stories Of Courage
+                  </p>
+
+                  <p className="mt-3 max-w-md text-sm leading-6 text-slate-300">
+                    Join us for an inspiring session celebrating courage,
+                    resilience, and stories beyond cancer.
+                  </p>
+
+                  {/* SESSION CARD */}
+                  <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.08] p-4 backdrop-blur-md sm:p-5">
+
+                    <div className="mb-4 flex items-center gap-2">
+                      <CalendarCheck className="h-5 w-5 text-sky-300" />
+                      <h2 className="text-sm font-bold text-white">
+                        Session Details
+                      </h2>
+                    </div>
+
+                    <div className="space-y-4">
+
+                      <div className="flex items-start gap-3">
+                        <CalendarDays className="mt-0.5 h-5 w-5 shrink-0 text-sky-300" />
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                            Date
+                          </p>
+                          <p className="mt-0.5 text-sm font-semibold text-white">
+                            Saturday, 05 December 2026
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3">
+                        <Clock3 className="mt-0.5 h-5 w-5 shrink-0 text-sky-300" />
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                            Time
+                          </p>
+                          <p className="mt-0.5 text-sm font-semibold text-white">
+                            11:00 AM - 12:00 PM
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3">
+                        <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-sky-300" />
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                            Venue
+                          </p>
+                          <p className="mt-0.5 text-sm font-semibold text-white">
+                            HICC, Novotel Hyderabad
+                          </p>
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+
+                  {/* TRUST NOTE */}
+                  <div className="mt-auto flex items-center gap-2 pt-7 text-xs text-slate-300">
+                    <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-300" />
+                    Your registration details are securely submitted.
+                  </div>
+
+                </div>
+              </aside>
+
+              {/* ================= RIGHT FORM PANEL ================= */}
+              <section className="p-5 sm:p-8 lg:p-10">
+
+                {/* FORM HEADER */}
+                <div className="mb-7">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-sky-700">
+                    <UserRound className="h-3.5 w-3.5" />
+                    Participant Form
+                  </div>
+
+                  <h2 className="mt-4 text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
+                    Register Your
+                    <span className="block text-sky-700">
+                      Participation
+                    </span>
+                  </h2>
+
+                  <p className="mt-2 text-sm leading-6 text-slate-500">
+                    Please provide your details below to complete
+                    your conference session registration.
+                  </p>
+                </div>
+
+                {/* REGISTRATION FORM */}
                 <form
                   onSubmit={handleSubmit(onSubmit)}
                   className="space-y-6"
                 >
-                  {/* =====================================================
-                      HEADER
-                  ===================================================== */}
 
-                  <div className="border-b border-orange-200 pb-5 text-center">
-                    <h1 className="text-xl font-bold text-orange-700 sm:text-2xl">
-                      PRACTITIONER&apos;S CONCLAVE 2026
-                    </h1>
+                  <div className="grid grid-cols-1 gap-x-5 gap-y-5 sm:grid-cols-2">
 
-                    <p className="mt-1 text-xs text-gray-600 sm:text-sm">
-                      By MediVision Eye Care Center
-                    </p>
-
-                    <p className="mt-3 text-sm font-bold uppercase tracking-wide text-orange-600">
-                      Registration Form
-                    </p>
-                  </div>
-
-                  {/* =====================================================
-                      FORM
-                  ===================================================== */}
-
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-
-                    {/* Name */}
-
+                    {/* NAME */}
                     <Field
                       label="Full Name"
                       error={errors.name?.message}
+                      icon={<UserRound className="h-5 w-5" />}
                     >
                       <Controller
                         name="name"
@@ -1105,379 +498,154 @@ export default function EVreadyRegistrationPage() {
                         render={({ field }) => (
                           <Input
                             {...field}
-                            placeholder="Enter your full name eg. Dr. Kumar Reddy"
-                            className="border-orange-200 bg-white text-black placeholder:text-gray-400 focus-visible:ring-orange-500"
+                            value={field.value ?? ""}
+                            placeholder="Enter your full name"
+                            autoComplete="name"
                           />
                         )}
                       />
                     </Field>
 
-                    {/* Designation */}
-
+                    {/* EMAIL */}
                     <Field
-                      label="Designation"
-                      error={errors.designation?.message}
+                      label="Email Address"
+                      error={errors.email?.message}
+                      icon={<Mail className="h-5 w-5" />}
                     >
                       <Controller
-                        name="designation"
+                        name="email"
                         control={control}
                         render={({ field }) => (
                           <Input
                             {...field}
-                            placeholder="Enter your designation"
-                            className="border-orange-200 bg-white text-black placeholder:text-gray-400 focus-visible:ring-orange-500"
+                            value={field.value ?? ""}
+                            type="email"
+                            placeholder="Enter your email address"
+                            autoComplete="email"
+                            onChange={(e) => {
+                              field.onChange(
+                                e.target.value.toLowerCase()
+                              );
+                            }}
                           />
                         )}
                       />
                     </Field>
 
-                    {/* Institute */}
-
+                    {/* MOBILE */}
                     <Field
-                      label="Institute"
-                      error={errors.institute?.message}
+                      label="Mobile Number"
+                      error={errors.mobile?.message}
+                      icon={<Phone className="h-5 w-5" />}
                     >
                       <Controller
-                        name="institute"
+                        name="mobile"
                         control={control}
                         render={({ field }) => (
                           <Input
                             {...field}
-                            placeholder="Enter institute name"
-                            className="border-orange-200 bg-white text-black placeholder:text-gray-400 focus-visible:ring-orange-500"
-                          />
-                        )}
-                      />
-                    </Field>
-
-                    {/* Mobile */}
-
-                    <Field
-                      label="Mobile No."
-                      error={errors.mobileNo?.message}
-                    >
-                      <Controller
-                        name="mobileNo"
-                        control={control}
-                        render={({ field }) => (
-                          <Input
-                            {...field}
+                            value={field.value ?? ""}
                             type="tel"
                             inputMode="numeric"
-                            maxLength={10}
-                            placeholder="Enter 10 digit mobile number"
-                            className="border-orange-200 bg-white text-black placeholder:text-gray-400 focus-visible:ring-orange-500"
+                            maxLength={13}
+                            placeholder="Enter 10–13 digit number"
+                            autoComplete="tel"
                             onChange={(e) => {
-                              field.onChange(
-                                e.target.value.replace(/\D/g, ''),
+                              const digits = String(
+                                e.target.value ?? ""
                               )
+                                .replace(/\D/g, "")
+                                .slice(0, 13);
+
+                              field.onChange(digits);
                             }}
                           />
                         )}
                       />
                     </Field>
 
-                    {/* Email */}
-
+                    {/* AFFILIATION */}
                     <Field
-                      label="Email ID"
-                      error={errors.emailId?.message}
+                      label="Affiliation / Organization"
+                      error={errors.affiliation?.message}
+                      icon={<Building2 className="h-5 w-5" />}
                     >
                       <Controller
-                        name="emailId"
+                        name="affiliation"
                         control={control}
                         render={({ field }) => (
                           <Input
                             {...field}
-                            type="email"
-                            placeholder="Enter your email ID"
-                            className="border-orange-200 bg-white text-black placeholder:text-gray-400 focus-visible:ring-orange-500"
-                            onChange={(e) => {
-                              field.onChange(
-                                e.target.value.toLowerCase(),
-                              )
-                            }}
+                            value={field.value ?? ""}
+                            placeholder="Enter hospital or organization"
+                            autoComplete="organization"
                           />
                         )}
                       />
                     </Field>
 
-                    {/* Medical Council No */}
-
-                    <Field
-                      label="Medical Council No."
-                      error={errors.medicalCouncilNo?.message}
-                    >
-                      <Controller
-                        name="medicalCouncilNo"
-                        control={control}
-                        render={({ field }) => (
-                          <Input
-                            {...field}
-                            placeholder="Enter medical council number"
-                            className="border-orange-200 bg-white text-black placeholder:text-gray-400 focus-visible:ring-orange-500"
-                          />
-                        )}
-                      />
-                    </Field>
-
-                    {/* Medical Council State */}
-
-                    <Field
-                      label="Medical Council State"
-                      error={errors.medicalCouncilState?.message}
-                    >
-                      <Controller
-                        name="medicalCouncilState"
-                        control={control}
-                        render={({ field }) => (
-                          <Select
-                            value={field.value}
-                            onValueChange={field.onChange}
-                          >
-                            <SelectTrigger className="w-full border-orange-200 bg-white p-3 text-black focus:ring-orange-500">
-                              <SelectValue placeholder="Select medical council state" />
-                            </SelectTrigger>
-
-                            <SelectContent>
-                              {medicalCouncils.map((council) => (
-                                <SelectItem
-                                  key={council.value}
-                                  value={council.value}
-                                >
-                                  {council.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
-                      />
-                    </Field>
                   </div>
 
-                  {/* =====================================================
-                      TERMS
-                  ===================================================== */}
-
-                  <div className="rounded-lg border border-orange-200 bg-orange-50 p-3">
-                    <div className="flex items-start gap-3">
-                      <Checkbox
-                        checked={agree}
-                        onCheckedChange={(value) => {
-                          setAgree(!!value)
-
-                          if (value) {
-                            setTermsError(null)
-                          }
-                        }}
-                        className="mt-0.5 border-orange-500 data-[state=checked]:border-orange-600 data-[state=checked]:bg-orange-600"
-                      />
-
-                      <Label className="cursor-pointer text-sm leading-5 text-gray-700">
-                        I agree to{' '}
-                        <Link
-                          href="/term-and-condition"
-                          className="font-semibold text-orange-600 underline hover:text-orange-700"
-                        >
-                          Terms and Conditions
-                        </Link>
-                      </Label>
-                    </div>
-
-                    {termsError && (
-                      <p className="mt-2 text-sm text-red-600">
-                        {termsError}
-                      </p>
-                    )}
+                  {/* INFORMATION NOTE */}
+                  <div className="flex items-start gap-3 rounded-xl border border-sky-100 bg-sky-50/70 p-3.5">
+                    <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-sky-600" />
+                    <p className="text-xs leading-5 text-slate-600">
+                      Please ensure your name, email address, and
+                      mobile number are correct before submitting.
+                      Your registration number will be generated
+                      after successful registration.
+                    </p>
                   </div>
 
-                  {/* =====================================================
-                      REGISTER BUTTON
-                  ===================================================== */}
+                  {/* SUBMIT BUTTON */}
+                  <div className="pt-1">
+                    <Button
+                      type="submit"
+                      disabled={submitting}
+                      style={{ background: gradients.primary }}
+                      className="h-12 w-full rounded-xl border-0 text-sm font-bold text-white shadow-lg shadow-sky-900/10 transition-all duration-300 hover:-translate-y-0.5 hover:opacity-95 hover:shadow-xl disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 sm:text-base"
+                    >
+                      {submitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          Submitting Registration...
+                        </>
+                      ) : (
+                        <>
+                          Complete Registration
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </>
+                      )}
+                    </Button>
 
-                  <Button
-                    type="submit"
-                    disabled={submitting}
-                    className="h-11 w-full bg-orange-600 font-semibold text-white transition-colors hover:bg-orange-700"
-                  >
-                    {submitting && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
+                    <p className="mt-3 text-center text-xs text-slate-400">
+                      Powered by SaaScraft Studio
+                    </p>
+                  </div>
 
-                    {submitting
-                      ? 'Registering...'
-                      : 'Register Now'}
-                  </Button>
                 </form>
-              ) : (
+              </section>
 
-                /* =======================================================
-                   SUCCESS SCREEN
-                ======================================================= */
-
-                <div className="px-2 py-8 text-center sm:px-6 sm:py-10">
-
-                  <div className="flex justify-center">
-                    <div className="rounded-full bg-orange-100 p-5">
-                      <CheckCircle2 className="h-16 w-16 text-orange-600" />
-                    </div>
-                  </div>
-
-                  <h2 className="mt-6 text-2xl font-bold text-orange-700">
-                    Registration Successful 🎉
-                  </h2>
-
-                  <p className="mt-2 text-sm text-gray-600">
-                    Your registration for{' '}
-                    <span className="font-semibold text-gray-800">
-                      PRACTITIONER&apos;S CONCLAVE 2026
-                    </span>{' '}
-                    is confirmed.
-                  </p>
-
-                  {regNum && (
-                    <div className="mt-4 inline-block rounded-full border border-orange-200 bg-orange-50 px-5 py-2 text-sm font-semibold text-orange-700">
-                      Registration No: {regNum}
-                    </div>
-                  )}
-
-                  {/* =====================================================
-                      QR CARD
-                  ===================================================== */}
-
-                  {showQr && (
-                    <div className="mt-8 space-y-5">
-
-                      <div
-                        id="evready-qr-card"
-                        className="relative mx-auto w-[320px] max-w-full overflow-hidden rounded-2xl border bg-white shadow-xl"
-                      >
-
-                        {/* QR HEADER */}
-
-                        <div className="bg-gradient-to-r from-orange-700 via-orange-600 to-amber-500 py-3 text-center text-white">
-                          <p className="text-sm font-semibold">
-                            PRACTITIONER&apos;S CONCLAVE 2026
-                          </p>
-
-                          <p className="text-xs opacity-90">
-                            By MediVision Eye Care Center
-                          </p>
-                        </div>
-
-                        {/* QR BODY */}
-
-                        <div className="relative flex flex-col items-center space-y-4 p-6">
-
-                          {/* WATERMARK */}
-
-                          <Image
-                            src="/logo.png"
-                            alt="logo"
-                            width={120}
-                            height={120}
-                            className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-10"
-                          />
-
-                          {/* QR */}
-
-                          <div className="relative z-10 mt-3 flex justify-center">
-                            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                              <QRCodeCanvas
-                                value={regNum ?? ''}
-                                size={160}
-                              />
-                            </div>
-                          </div>
-
-                          <p className="relative z-10 text-xs text-gray-500">
-                            Scan at entry gate
-                          </p>
-
-                          <div className="w-full border-t border-dashed border-gray-300" />
-
-                          <div className="text-xs text-gray-600">
-                            Valid for entry • Do not share
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* DOWNLOAD */}
-
-                      <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={downloadQrCard}
-                          className="w-full border-orange-300 text-orange-700 hover:bg-orange-50 hover:text-orange-800"
-                        >
-                          <Download className="mr-2 h-4 w-4" />
-                          Download QR Code
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* NEW REGISTRATION */}
-
-                  <div className="my-8 border-t border-gray-200" />
-
-                  <Button
-                    type="button"
-                    onClick={handleNewRegistration}
-                    className="w-full bg-orange-600 font-semibold text-white hover:bg-orange-700"
-                  >
-                    New Registration
-                  </Button>
-                </div>
-              )
-            )}
-
-          </CardContent>
-        </Card>
+            </div>
+          )}
+        </div>
       </main>
 
-      {/* =========================================================
-          FOOTER
-      ========================================================= */}
-
-      <footer className="border-t border-white/20 bg-black/10 backdrop-blur">
-        <div className="mx-auto max-w-7xl px-4 py-4 text-center text-sm text-white">
-          © {new Date().getFullYear()} All Rights Reserved.
-          Powered by SaaScraft Studio (India) Pvt. Ltd.
-        </div>
-      </footer>
-    </div>
-  )
-}
-
-/* ===============================================================
-   REUSABLE FIELD
-================================================================ */
-
-function Field({
-  label,
-  error,
-  children,
-}: {
-  label: string
-  error?: string
-  children: React.ReactNode
-}) {
-  return (
-    <div className="grid gap-1.5">
-      <Label className="font-medium text-gray-800">
-        {label}{' '}
-        <span className="text-orange-600">*</span>
-      </Label>
-
-      {children}
-
-      {error && (
-        <p className="text-sm text-red-600">
-          {error}
+      {/* ================= FOOTER ================= */}
+      <footer className="border-t border-sky-100 bg-white/70 px-4 py-4 text-center backdrop-blur">
+        <p className="text-sm font-semibold text-sky-800">
+          AROICON-2026 by Apollo Hospitals
         </p>
-      )}
+
+        <p className="mt-1 text-xs text-slate-500">
+          46th Annual Conference AROICON 2026
+        </p>
+
+        <p className="mt-1.5 text-[11px] text-slate-400">
+          Powered by SaaScraft Studio
+        </p>
+      </footer>
+
     </div>
-  )
+  );
 }
