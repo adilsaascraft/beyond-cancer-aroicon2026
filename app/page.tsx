@@ -297,7 +297,7 @@ export default function EVreadyRegistrationPage() {
       {/* ================= BANNER ================= */}
       <header className="relative w-full overflow-hidden bg-white">
         <Image
-          src="/banner.png"
+          src="/banner.webp"
           alt="46th Annual Conference AROICON 2026 - Beyond Cancer: Stories of Courage"
           width={1920}
           height={400}
