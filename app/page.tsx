@@ -93,7 +93,6 @@ function Field({ label, error, icon, children }: FieldProps) {
 export default function EVreadyRegistrationPage() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [regNum, setRegNum] = useState<string | null>(null);
 
   const webinarDraft = useFormDraftStore(
     (state) => state.drafts[DRAFT_KEY]
@@ -126,7 +125,6 @@ export default function EVreadyRegistrationPage() {
     reset(INITIAL_VALUES);
     clearDraft(DRAFT_KEY);
     setSuccess(false);
-    setRegNum(null);
   };
 
   // Submit registration
@@ -160,8 +158,6 @@ export default function EVreadyRegistrationPage() {
       if (!response?.data?.regNum) {
         throw new Error("Invalid response from server");
       }
-
-      setRegNum(response.data.regNum);
       setSuccess(true);
       clearDraft(DRAFT_KEY);
 
@@ -209,21 +205,6 @@ export default function EVreadyRegistrationPage() {
             Your participation has been successfully registered.
             We look forward to welcoming you!
           </p>
-
-          {/* REGISTRATION NUMBER */}
-          {regNum && (
-            <div className="mx-auto mt-3 inline-flex items-center gap-2 rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-2">
-              <ShieldCheck className="h-4 w-4 text-emerald-600" />
-              <div className="text-left">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700">
-                  Registration Number
-                </p>
-                <p className="text-sm font-extrabold tracking-wide text-emerald-900">
-                  {regNum}
-                </p>
-              </div>
-            </div>
-          )}
 
           {/* CONFERENCE DETAILS */}
           <div className="mt-4 rounded-xl border border-sky-100 bg-gradient-to-br from-sky-50 to-indigo-50 p-4 text-left">
@@ -592,8 +573,6 @@ export default function EVreadyRegistrationPage() {
                     <p className="text-xs leading-5 text-slate-600">
                       Please ensure your name, email address, and
                       mobile number are correct before submitting.
-                      Your registration number will be generated
-                      after successful registration.
                     </p>
                   </div>
 
