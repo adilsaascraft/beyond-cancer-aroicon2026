@@ -4,8 +4,8 @@ import Register from '@/lib/models/Register'
 import Counter from '@/lib/models/Counter'
 import { EVEventRegistrationSchema } from '@/validations/registrationSchema'
 
-const REG_PREFIX = 'AROICON26'
-const REG_START = 1001
+const REG_PREFIX = 'PARTICIPANT'
+const REG_START = 1
 
 function fail(message: string, status: number) {
   return NextResponse.json({ success: false, message }, { status })
