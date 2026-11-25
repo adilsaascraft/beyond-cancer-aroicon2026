@@ -234,7 +234,7 @@ export default function ParticipantsPage() {
 
           <div className="mx-auto max-w-md">
 
-            <Card className="relative overflow-hidden rounded-3xl border border-white bg-white/95 shadow-xl shadow-sky-900/10">
+            <Card className="p-0 relative overflow-hidden rounded-3xl border border-white bg-white/95 shadow-xl shadow-sky-900/10">
 
               {/* Gradient top line */}
               <div className="h-1.5 w-full bg-gradient-to-r from-fuchsia-500 via-purple-500 to-sky-500" />
@@ -559,7 +559,7 @@ export default function ParticipantsPage() {
 
                   <Card
                     key={p._id}
-                    className="group relative overflow-hidden rounded-2xl border border-white bg-white shadow-md shadow-sky-900/5 transition-all duration-300 hover:-translate-y-1 hover:border-sky-200 hover:shadow-xl hover:shadow-sky-900/10"
+                    className="p-0 group relative overflow-hidden rounded-2xl border border-white bg-white shadow-md shadow-sky-900/5 transition-all duration-300 hover:-translate-y-1 hover:border-sky-200 hover:shadow-xl hover:shadow-sky-900/10"
                   >
 
                     {/* Card top accent */}
